@@ -89,7 +89,7 @@ class SortableMixin(models.Model):
     def save(self, *args, **kwargs):
         if not self.pk:
             try:
-                current_max = self.__class__.objects.aggregate(
+                current_max = self.get_ordering_queryset().aggregate(
                     models.Max(self.order_field_name))[self.order_field_name + '__max'] or 0
 
                 setattr(self, self.order_field_name, current_max + 1)
@@ -112,12 +112,15 @@ class SortableMixin(models.Model):
             order_by = '-{0}'.format(self.order_field_name) \
                 if '{0}__lt'.format(self.order_field_name) in filters.keys() \
                 else self.order_field_name
-            obj = self.__class__.objects.filter(
+            obj = self.get_ordering_queryset().filter(
                 **filters).order_by(order_by)[:1][0]
         except IndexError:
             obj = None
 
         return obj
+        
+    def get_ordering_queryset(self):
+        return self.__class__.objects.all()
 
     def get_next(self, extra_filters={}, filter_on_sortable_fk=True):
         return self._filter_objects(
